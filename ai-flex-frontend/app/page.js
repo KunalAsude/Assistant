@@ -44,10 +44,11 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
+    console.log("Sending request to API...",API_URL)
     
     try {
       // Replace with your actual API endpoint
-      const res = await fetch(`${API_URL}/symptoms/analyze`, {
+      const res = await fetch(`${API_URL}/api/symptoms/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symptoms: input }),
