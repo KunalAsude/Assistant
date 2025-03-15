@@ -1,127 +1,189 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, Pill, ShieldAlert, Stethoscope } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { ChevronDown, ChevronUp } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import IndianAlternatives from "./IndianAlternativesDisplay"
 
 export function HealthAnalysisDisplay({ data }) {
-  const conditions = (data?.possibleConditions || []).slice(0, 3)
-  const symptoms = (data?.symptoms || []).slice(0, 3)
-  const remedies = (data?.remedies || []).slice(0, 3)
-  const precautions = (data?.precautions || []).slice(0, 3)
+  const [activeTab, setActiveTab] = useState("conditions")
 
-  const renderItem = (item) => {
-    if (typeof item === "string") {
-      return item
-    } else if (item && typeof item === "object") {
-      return (
-        <div>
-          <div className="font-medium">{item.name}</div>
-          {item.description && <div className="text-sm text-slate-300 mt-1">{item.description}</div>}
-        </div>
-      )
+  if (!data) return null
+
+  // Check if we have Indian alternatives data
+  const hasIndianAlternatives = data.indianAlternatives && Object.keys(data.indianAlternatives).length > 0
+
+  return (
+    <div className="space-y-2 sm:space-y-3 md:space-y-4">
+      <div className="flex flex-wrap gap-1 sm:gap-2 md:gap-3">
+        <Button
+          size="sm"
+          variant={activeTab === "conditions" ? "default" : "outline"}
+          className={`text-xs sm:text-sm h-7 sm:h-8 md:h-9 px-2 sm:px-3 ${
+            activeTab === "conditions"
+              ? "bg-cyan-600 hover:bg-cyan-500 text-white"
+              : "bg-transparent border-cyan-700 text-cyan-300 hover:bg-cyan-800/50"
+          }`}
+          onClick={() => setActiveTab("conditions")}
+        >
+          <span className="block sm:hidden">Conditions</span>
+          <span className="hidden sm:block">Possible Conditions</span>
+        </Button>
+
+        {data.symptoms && data.symptoms.length > 0 && (
+          <Button
+            size="sm"
+            variant={activeTab === "symptoms" ? "default" : "outline"}
+            className={`text-xs sm:text-sm h-7 sm:h-8 md:h-9 px-2 sm:px-3 ${
+              activeTab === "symptoms"
+                ? "bg-cyan-600 hover:bg-cyan-500 text-white"
+                : "bg-transparent border-cyan-700 text-cyan-300 hover:bg-cyan-800/50"
+            }`}
+            onClick={() => setActiveTab("symptoms")}
+          >
+            <span className="block sm:hidden">Symptoms</span>
+            <span className="hidden sm:block">Common Symptoms</span>
+          </Button>
+        )}
+
+        {data.remedies && data.remedies.length > 0 && (
+          <Button
+            size="sm"
+            variant={activeTab === "remedies" ? "default" : "outline"}
+            className={`text-xs sm:text-sm h-7 sm:h-8 md:h-9 px-2 sm:px-3 ${
+              activeTab === "remedies"
+                ? "bg-cyan-600 hover:bg-cyan-500 text-white"
+                : "bg-transparent border-cyan-700 text-cyan-300 hover:bg-cyan-800/50"
+            }`}
+            onClick={() => setActiveTab("remedies")}
+          >
+            <span className="whitespace-nowrap">Remedies</span>
+          </Button>
+        )}
+
+        {data.precautions && data.precautions.length > 0 && (
+          <Button
+            size="sm"
+            variant={activeTab === "precautions" ? "default" : "outline"}
+            className={`text-xs sm:text-sm h-7 sm:h-8 md:h-9 px-2 sm:px-3 ${
+              activeTab === "precautions"
+                ? "bg-cyan-600 hover:bg-cyan-500 text-white"
+                : "bg-transparent border-cyan-700 text-cyan-300 hover:bg-cyan-800/50"
+            }`}
+            onClick={() => setActiveTab("precautions")}
+          >
+            <span className="block sm:hidden">Caution</span>
+            <span className="hidden sm:block">Precautions</span>
+          </Button>
+        )}
+
+        {/* Add tab for Indian Alternatives */}
+        {hasIndianAlternatives && (
+          <Button
+            size="sm"
+            variant={activeTab === "alternatives" ? "default" : "outline"}
+            className={`text-xs sm:text-sm h-7 sm:h-8 md:h-9 px-2 sm:px-3 ${
+              activeTab === "alternatives"
+                ? "bg-cyan-600 hover:bg-cyan-500 text-white"
+                : "bg-transparent border-cyan-700 text-cyan-300 hover:bg-cyan-800/50"
+            }`}
+            onClick={() => setActiveTab("alternatives")}
+          >
+            <span className="block sm:hidden">Meds</span>
+            <span className="hidden sm:block">Suggested Medications</span>
+          </Button>
+        )}
+      </div>
+
+      <div className="w-full">
+        {activeTab === "conditions" && data.possibleConditions && (
+          <AnalysisSection items={data.possibleConditions} type="conditions" title="Possible Conditions" />
+        )}
+
+        {activeTab === "symptoms" && data.symptoms && (
+          <AnalysisSection items={data.symptoms} type="symptoms" title="Common Symptoms" />
+        )}
+
+        {activeTab === "remedies" && data.remedies && (
+          <AnalysisSection items={data.remedies} type="remedies" title="Recommended Remedies" />
+        )}
+
+        {activeTab === "precautions" && data.precautions && (
+          <AnalysisSection items={data.precautions} type="precautions" title="Precautions & When to Seek Help" />
+        )}
+
+        {/* Add section for Indian Alternatives */}
+        {activeTab === "alternatives" && hasIndianAlternatives && <IndianAlternatives data={data} />}
+      </div>
+    </div>
+  )
+}
+
+// Keep the existing AnalysisSection component with responsive improvements
+function AnalysisSection({ items, type, title }) {
+  const [expandedItem, setExpandedItem] = useState(null)
+
+  if (!items || items.length === 0) return null
+
+  const toggleItem = (itemName) => {
+    if (expandedItem === itemName) {
+      setExpandedItem(null)
+    } else {
+      setExpandedItem(itemName)
     }
-    return null
   }
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700 overflow-hidden">
-      <Tabs defaultValue="conditions">
-        <TabsList className="w-full bg-slate-800 border-b border-slate-700 rounded-none h-auto p-0 flex flex-nowrap overflow-x-auto scrollbar-hide">
-          <TabsTrigger
-            value="conditions"
-            className="flex items-center gap-1 py-2 md:py-3 px-2 md:px-4 text-xs sm:text-sm rounded-md sm:rounded-none m-1 data-[state=active]:bg-slate-700 whitespace-nowrap"
-          >
-            <Stethoscope size={16} className="hidden md:inline" />
-            <span className="md:hidden">Cond.</span>
-            <span className="hidden md:inline">Conditions</span>
-            {conditions.length > 0 && <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">{conditions.length}</span>}
-          </TabsTrigger>
-          <TabsTrigger
-            value="symptoms"
-            className="flex items-center gap-1 py-2 md:py-3 px-2 md:px-4 text-xs sm:text-sm rounded-md sm:rounded-none m-1 data-[state=active]:bg-slate-700 whitespace-nowrap"
-          >
-            <AlertCircle size={16} className="hidden md:inline" />
-            <span className="md:hidden">Symp.</span>
-            <span className="hidden md:inline">Symptoms</span>
-            {symptoms.length > 0 && <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">{symptoms.length}</span>}
-          </TabsTrigger>
-          <TabsTrigger
-            value="remedies"
-            className="flex items-center gap-1 py-2 md:py-3 px-2 md:px-4 text-xs sm:text-sm rounded-md sm:rounded-none m-1 data-[state=active]:bg-slate-700 whitespace-nowrap"
-          >
-            <Pill size={16} className="hidden md:inline" />
-            <span className="md:hidden">Rem.</span>
-            <span className="hidden md:inline">Remedies</span>
-            {remedies.length > 0 && <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">{remedies.length}</span>}
-          </TabsTrigger>
-          <TabsTrigger
-            value="precautions"
-            className="flex items-center gap-1 py-2 md:py-3 px-2 md:px-4 text-xs sm:text-sm rounded-md sm:rounded-none m-1 data-[state=active]:bg-slate-700 whitespace-nowrap"
-          >
-            <ShieldAlert size={16} className="hidden md:inline" />
-            <span className="md:hidden">Prec.</span>
-            <span className="hidden md:inline">Precautions</span>
-            {precautions.length > 0 && <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">{precautions.length}</span>}
-          </TabsTrigger>
-        </TabsList>
+    <Card className="bg-cyan-800/20 border-cyan-800 w-full">
+      <CardHeader className="pb-2 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4">
+        <CardTitle className="text-sm sm:text-base md:text-lg text-white flex flex-wrap items-center gap-2">
+          <span>{title}</span>
+          {type === "conditions" && (
+            <Badge variant="outline" className="bg-cyan-700/50 text-cyan-100 border-cyan-600 text-xs">
+              {items.length} identified
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 pb-2 px-3 sm:px-4 md:px-6">
+        <div className="space-y-2 md:space-y-3">
+          {items.map((item, index) => (
+            <div key={index} className="rounded-md overflow-hidden border border-cyan-700/50">
+              <Button
+                variant="ghost"
+                className="w-full flex items-center justify-between p-2 sm:p-3 bg-cyan-700/30 hover:bg-cyan-700/50 text-left h-auto"
+                onClick={() => toggleItem(item.name)}
+              >
+                <div className="font-medium text-xs sm:text-sm md:text-base text-cyan-100 pr-2">{item.name}</div>
+                {expandedItem === item.name ? (
+                  <ChevronUp size={16} className="text-cyan-300 flex-shrink-0" />
+                ) : (
+                  <ChevronDown size={16} className="text-cyan-300 flex-shrink-0" />
+                )}
+              </Button>
 
-        <CardContent className="p-2 sm:p-4">
-          <TabsContent value="conditions" className="mt-0">
-            <ul className="space-y-2">
-              {conditions.length > 0 ? (
-                conditions.map((condition, index) => (
-                  <li key={index} className="bg-slate-700/50 p-2 sm:p-3 rounded-lg">
-                    {renderItem(condition)}
-                  </li>
-                ))
-              ) : (
-                <li className="text-muted-foreground italic">No conditions identified</li>
+              {expandedItem === item.name && (
+                <div className="p-2 sm:p-3 md:p-4 bg-cyan-800/10">
+                  {/* Show shorter description on mobile, full description on larger screens */}
+                  <p className="block sm:hidden text-xs text-cyan-200">
+                    {item.shortDescription || truncateText(item.description, 100)}
+                  </p>
+                  <p className="hidden sm:block text-sm text-cyan-200">{item.description}</p>
+                </div>
               )}
-            </ul>
-          </TabsContent>
-
-          <TabsContent value="symptoms" className="mt-0">
-            <ul className="space-y-2">
-              {symptoms.length > 0 ? (
-                symptoms.map((symptom, index) => (
-                  <li key={index} className="bg-slate-700/50 p-2 sm:p-3 rounded-lg">
-                    {renderItem(symptom)}
-                  </li>
-                ))
-              ) : (
-                <li className="text-muted-foreground italic">No symptoms listed</li>
-              )}
-            </ul>
-          </TabsContent>
-
-          <TabsContent value="remedies" className="mt-0">
-            <ul className="space-y-2">
-              {remedies.length > 0 ? (
-                remedies.map((remedy, index) => (
-                  <li key={index} className="bg-slate-700/50 p-2 sm:p-3 rounded-lg">
-                    {renderItem(remedy)}
-                  </li>
-                ))
-              ) : (
-                <li className="text-muted-foreground italic">No remedies suggested</li>
-              )}
-            </ul>
-          </TabsContent>
-
-          <TabsContent value="precautions" className="mt-0">
-            <ul className="space-y-2">
-              {precautions.length > 0 ? (
-                precautions.map((precaution, index) => (
-                  <li key={index} className="bg-slate-700/50 p-2 sm:p-3 rounded-lg">
-                    {renderItem(precaution)}
-                  </li>
-                ))
-              ) : (
-                <li className="text-muted-foreground italic">No precautions advised</li>
-              )}
-            </ul>
-          </TabsContent>
-        </CardContent>
-      </Tabs>
+            </div>
+          ))}
+        </div>
+      </CardContent>
     </Card>
   )
 }
+
+// Helper function to truncate text for smaller screens
+function truncateText(text, maxLength) {
+  if (!text || text.length <= maxLength) return text
+  return text.substring(0, maxLength).trim() + "..."
+}
+
